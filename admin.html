@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BUS-MASTER Admin</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+    }
+    .header {
+      background: #0f172a;
+      color: white;
+      padding: 24px 20px;
+      border-bottom-left-radius: 28px;
+      border-bottom-right-radius: 28px;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .title {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: -0.04em;
+    }
+    .title small {
+      font-size: 11px;
+      background: #2563eb;
+      padding: 4px 8px;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-left: 8px;
+      font-style: normal;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: none;
+      cursor: pointer;
+      border-radius: 16px;
+      font-weight: 900;
+      transition: 0.18s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-yellow {
+      background: #facc15;
+      color: #0f172a;
+      padding: 12px 16px;
+    }
+    .btn-dark {
+      background: #1e293b;
+      color: white;
+      padding: 12px 16px;
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .view-row, .day-row {
+      display: grid;
+      gap: 8px;
+    }
+    .view-row { grid-template-columns: repeat(2, 1fr); }
+    .day-row { grid-template-columns: repeat(5, 1fr); margin-top: 10px; }
+    .tab {
+      border: 4px solid transparent;
+      background: #1e293b;
+      color: rgba(255,255,255,0.4);
+      min-height: 58px;
+      border-radius: 18px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .tab.active {
+      background: white;
+      color: #0f172a;
+      border-color: #facc15;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    }
+    .bus-tab.active {
+      background: #facc15;
+      color: #0f172a;
+      border-color: transparent;
+    }
+    .day-tab {
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      min-height: 48px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .day-tab.active {
+      background: #facc15;
+      color: #0f172a;
+      border-color: #facc15;
+    }
+    .content {
+      padding: 20px;
+    }
+    .subinfo {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .subinfo h2 {
+      margin: 0;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+    }
+    .subinfo p {
+      margin: 6px 0 0;
+      color: #64748b;
+      font-weight: 800;
+    }
+    .count {
+      background: #0f172a;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .link-panel {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .link-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 14px;
+    }
+    .link-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .link-card .small {
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
+      line-height: 1.5;
+      background: white;
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 10px;
+    }
+    .copy-btn {
+      width: 100%;
+      background: #0f172a;
+      color: white;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      border: none;
+      cursor: pointer;
+    }
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      border: 1px solid #eef2f7;
+    }
+    .card.pickup { border-left: 12px solid #2563eb; }
+    .card.dropoff { border-left: 12px solid #ef4444; }
+    .card-body { padding: 20px 18px; }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+    .name {
+      margin: 0 0 6px;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+    .stage {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .stage.pickup { color: #2563eb; }
+    .stage.dropoff { color: #ef4444; }
+    .icon-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-btn {
+      border: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .time-box {
+      background: #f8fafc;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .time {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+    .time.pickup { color: #2563eb; }
+    .time.dropoff { color: #ef4444; }
+    .loc {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      flex: 1;
+      min-width: 140px;
+    }
+    .contact {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+    .contact-label {
+      width: 54px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .contact-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .contact-actions a {
+      text-decoration: none;
+      color: white;
+      font-weight: 900;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 12px;
+    }
+    .call { background: #2563eb; }
+    .sms { background: #10b981; }
+    .empty {
+      text-align: center;
+      color: #94a3b8;
+      padding: 80px 20px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal.active { display: flex; }
+    .modal-box {
+      width: 100%;
+      max-width: 640px;
+      background: white;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.24);
+    }
+    .modal-head {
+      background: #0f172a;
+      color: white;
+      padding: 22px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-size: 28px;
+      font-style: italic;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+    .close-btn {
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+    }
+    .modal-body {
+      padding: 24px;
+      max-height: 72vh;
+      overflow-y: auto;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field input, .field select {
+      width: 100%;
+      border: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 16px;
+      font-weight: 800;
+      outline: none;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .group {
+      border-radius: 24px;
+      padding: 16px;
+      margin-bottom: 14px;
+      border: 1px solid;
+    }
+    .group.pickup {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .group.dropoff {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+    .group-title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .group.pickup .group-title { color: #2563eb; }
+    .group.dropoff .group-title { color: #ef4444; }
+    .modal-footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 18px 24px;
+    }
+    .save-btn {
+      width: 100%;
+      border: none;
+      background: #0f172a;
+      color: white;
+      padding: 18px;
+      border-radius: 20px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      font-style: italic;
+    }
+    @media (max-width: 820px) {
+      .link-panel { grid-template-columns: 1fr; }
+      .filter-row { grid-template-columns: 1fr 1fr 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-top">
+        <h1 class="title">🚐 BUS-MASTER <small>ADMIN</small></h1>
+        <div class="top-actions">
+          <button class="btn btn-yellow" id="addBtn">+ 학생 추가</button>
+        </div>
+      </div>
+
+      <div class="filter-row" id="busTabs">
+        <button class="btn tab bus-tab active" data-bus="1">1호차</button>
+        <button class="btn tab bus-tab" data-bus="2">2호차</button>
+        <button class="btn tab bus-tab" data-bus="3">3호차</button>
+      </div>
+
+      <div class="view-row" id="viewTabs">
+        <button class="btn tab active" data-view="pickup">🏠 승차 명단</button>
+        <button class="btn tab" data-view="dropoff">🏫 하차 명단</button>
+      </div>
+
+      <div class="day-row" id="dayTabs">
+        <button class="btn day-tab active" data-day="월">월</button>
+        <button class="btn day-tab" data-day="화">화</button>
+        <button class="btn day-tab" data-day="수">수</button>
+        <button class="btn day-tab" data-day="목">목</button>
+        <button class="btn day-tab" data-day="금">금</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="subinfo">
+        <div>
+          <h2 id="titleBus">1호차</h2>
+          <p id="titleDay">월요일 관리 화면</p>
+        </div>
+        <div class="count" id="countPill">0명</div>
+      </section>
+
+      <section class="link-panel" id="linkPanel"></section>
+      <section id="list"></section>
+    </main>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Student</h3>
+        <button class="close-btn" id="closeModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="f-id" />
+
+        <div class="field">
+          <input type="text" id="f-name" placeholder="학생 성함" />
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <select id="f-bus">
+              <option value="1">1호차</option>
+              <option value="2">2호차</option>
+              <option value="3">3호차</option>
+            </select>
+          </div>
+          <div class="field">
+            <select id="f-day">
+              <option value="월">월요일</option>
+              <option value="화">화요일</option>
+              <option value="수">수요일</option>
+              <option value="목">목요일</option>
+              <option value="금">금요일</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="group pickup">
+          <p class="group-title">🏠 Pickup</p>
+          <div class="grid-2">
+            <div class="field"><input type="time" id="f-pTime" /></div>
+            <div class="field"><input type="text" id="f-pLoc" placeholder="승차 장소" /></div>
+          </div>
+        </div>
+
+        <div class="group dropoff">
+          <p class="group-title">🏫 Dropoff</p>
+          <div class="grid-2">
+            <div class="field"><input type="time" id="f-dTime" /></div>
+            <div class="field"><input type="text" id="f-dLoc" placeholder="하차 장소" /></div>
+          </div>
+        </div>
+
+        <div class="field"><input type="tel" id="tel-보호자" placeholder="보호자 번호" /></div>
+        <div class="field"><input type="tel" id="tel-학생" placeholder="학생 번호" /></div>
+        <div class="field"><input type="tel" id="tel-돌봄" placeholder="돌봄 번호" /></div>
+        <div class="field"><input type="tel" id="tel-타학원" placeholder="타학원 번호" /></div>
+      </div>
+      <div class="modal-footer">
+        <button class="save-btn" id="saveBtn">SAVE CHANGES</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      onSnapshot,
+      addDoc,
+      doc,
+      updateDoc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB-VoWAnSd6Rb8CLcJZKQL0ZGKe0wNRjh0",
+      authDomain: "bus-master-77c2d.firebaseapp.com",
+      projectId: "bus-master-77c2d",
+      storageBucket: "bus-master-77c2d.firebasestorage.app",
+      messagingSenderId: "1078854736324",
+      appId: "1:1078854736324:web:0a7b7496a759445af92c91"
+    };
+
+    const DRIVER_KEYS = {
+      "1": "bus1-2026-a9K2mP",
+      "2": "bus2-2026-b7Q4xR",
+      "3": "bus3-2026-c5N8vT"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const DAYS = ["월", "화", "수", "목", "금"];
+    const CATS = ["보호자", "학생", "돌봄", "타학원"];
+    const today = ["일","월","화","수","목","금","토"][new Date().getDay()];
+
+    let state = {
+      students: [],
+      currentBus: "1",
+      currentDay: DAYS.includes(today) ? today : "월",
+      currentView: "pickup",
+      editingId: null
+    };
+
+    const listEl = document.getElementById("list");
+    const titleBusEl = document.getElementById("titleBus");
+    const titleDayEl = document.getElementById("titleDay");
+    const countPillEl = document.getElementById("countPill");
+    const linkPanelEl = document.getElementById("linkPanel");
+    const modalEl = document.getElementById("modal");
+
+    function getBaseUrl() {
+      const path = window.location.pathname.replace(/admin\.html$/, "");
+      return `${window.location.origin}${path}`;
+    }
+
+    function getDriverLink(bus) {
+      const base = getBaseUrl();
+      return `${base}?bus=${bus}&key=${encodeURIComponent(DRIVER_KEYS[bus])}`;
+    }
+
+    function copyText(text, bus) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector(`[data-copy="${bus}"]`);
+        if (!btn) return;
+        const old = btn.textContent;
+        btn.textContent = "복사 완료";
+        setTimeout(() => btn.textContent = old, 1500);
+      });
+    }
+
+    function getFiltered() {
+      return [...state.students]
+        .filter(s => s.bus === state.currentBus && s.day === state.currentDay)
+        .sort((a, b) => {
+          const ta = state.currentView === "pickup" ? (a.pTime || "99:99") : (a.dTime || "99:99");
+          const tb = state.currentView === "pickup" ? (b.pTime || "99:99") : (b.dTime || "99:99");
+          return ta.localeCompare(tb);
+        });
+    }
+
+    function makeContactsHtml(contacts = []) {
+      if (contacts.length === 0) return "";
+      return contacts.map(c => `
+        <div class="contact">
+          <div class="contact-label">${c.cat}</div>
+          <div class="contact-actions">
+            <a class="call" href="tel:${c.tel}">📞 전화</a>
+            <a class="sms" href="sms:${c.tel}">✉️ 문자</a>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderLinks() {
+      linkPanelEl.innerHTML = ["1","2","3"].map(bus => {
+        const link = getDriverLink(bus);
+        return `
+          <div class="link-card">
+            <h3>${bus}호차 기사님 링크</h3>
+            <div class="small">${link}</div>
+            <button class="copy-btn" data-copy="${bus}">링크 복사</button>
+          </div>
+        `;
+      }).join("");
+
+      document.querySelectorAll("[data-copy]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const bus = btn.dataset.copy;
+          copyText(getDriverLink(bus), bus);
+        });
+      });
+    }
+
+    function renderTabs() {
+      document.querySelectorAll("[data-bus]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.bus === state.currentBus);
+      });
+      document.querySelectorAll("[data-view]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.view === state.currentView);
+      });
+      document.querySelectorAll("[data-day]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.day === state.currentDay);
+      });
+    }
+
+    function renderList() {
+      const filtered = getFiltered();
+      titleBusEl.textContent = `${state.currentBus}호차`;
+      titleDayEl.textContent = `${state.currentDay}요일 관리 화면`;
+      countPillEl.textContent = `${filtered.length}명`;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="empty">No Schedule Today</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(s => {
+        const time = state.currentView === "pickup" ? s.pTime : s.dTime;
+        const loc = state.currentView === "pickup" ? s.pLoc : s.dLoc;
+        const modeClass = state.currentView === "pickup" ? "pickup" : "dropoff";
+        const stageText = state.currentView === "pickup" ? "🏠 승차단계" : "🏫 하차단계";
+
+        return `
+          <section class="card ${modeClass}">
+            <div class="card-body">
+              <div class="card-top">
+                <div>
+                  <h2 class="name">${s.name || ""}</h2>
+                  <div class="stage ${modeClass}">${stageText}</div>
+                </div>
+                <div class="icon-actions">
+                  <button class="icon-btn" data-edit="${s.id}">📝</button>
+                  <button class="icon-btn" data-delete="${s.id}">🗑️</button>
+                </div>
+              </div>
+
+              <div class="time-box">
+                <div class="time ${modeClass}">${time || "--:--"}</div>
+                <div class="loc">${loc || "미입력"}</div>
+              </div>
+
+              ${makeContactsHtml(s.contacts)}
+            </div>
+          </section>
+        `;
+      }).join("");
+
+      document.querySelectorAll("[data-edit]").forEach(btn => {
+        btn.addEventListener("click", () => openEdit(btn.dataset.edit));
+      });
+
+      document.querySelectorAll("[data-delete]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          if (!confirm("삭제하시겠습니까?")) return;
+          await deleteDoc(doc(db, "students", btn.dataset.delete));
+        });
+      });
+    }
+
+    function render() {
+      renderTabs();
+      renderLinks();
+      renderList();
+    }
+
+    function openModal() {
+      modalEl.classList.add("active");
+    }
+
+    function closeModal() {
+      modalEl.classList.remove("active");
+    }
+
+    function resetForm() {
+      state.editingId = null;
+      document.getElementById("modalTitle").textContent = "Add Student";
+      document.getElementById("f-id").value = "";
+      document.getElementById("f-name").value = "";
+      document.getElementById("f-bus").value = state.currentBus;
+      document.getElementById("f-day").value = state.currentDay;
+      document.getElementById("f-pTime").value = "";
+      document.getElementById("f-pLoc").value = "";
+      document.getElementById("f-dTime").value = "";
+      document.getElementById("f-dLoc").value = "";
+      CATS.forEach(cat => {
+        document.getElementById(`tel-${cat}`).value = "";
+      });
+    }
+
+    function openEdit(id) {
+      const s = state.students.find(item => item.id === id);
+      if (!s) return;
+      state.editingId = id;
+      document.getElementById("modalTitle").textContent = "Edit Student";
+      document.getElementById("f-id").value = s.id || "";
+      document.getElementById("f-name").value = s.name || "";
+      document.getElementById("f-bus").value = s.bus || "1";
+      document.getElementById("f-day").value = s.day || "월";
+      document.getElementById("f-pTime").value = s.pTime || "";
+      document.getElementById("f-pLoc").value = s.pLoc || "";
+      document.getElementById("f-dTime").value = s.dTime || "";
+      document.getElementById("f-dLoc").value = s.dLoc || "";
+      CATS.forEach(cat => {
+        const found = (s.contacts || []).find(c => c.cat === cat);
+        document.getElementById(`tel-${cat}`).value = found ? found.tel : "";
+      });
+      openModal();
+    }
+
+    async function saveStudent() {
+      const name = document.getElementById("f-name").value.trim();
+      if (!name) {
+        alert("학생 성함을 입력해 주세요.");
+        return;
+      }
+
+      const contacts = CATS
+        .map(cat => ({
+          cat,
+          tel: document.getElementById(`tel-${cat}`).value.trim()
+        }))
+        .filter(item => item.tel);
+
+      const payload = {
+        name,
+        bus: document.getElementById("f-bus").value,
+        day: document.getElementById("f-day").value,
+        pTime: document.getElementById("f-pTime").value,
+        pLoc: document.getElementById("f-pLoc").value.trim(),
+        dTime: document.getElementById("f-dTime").value,
+        dLoc: document.getElementById("f-dLoc").value.trim(),
+        contacts
+      };
+
+      if (state.editingId) {
+        await updateDoc(doc(db, "students", state.editingId), payload);
+      } else {
+        await addDoc(collection(db, "students"), payload);
+      }
+
+      closeModal();
+      resetForm();
+    }
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      resetForm();
+      openModal();
+    });
+
+    document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+    document.getElementById("saveBtn").addEventListener("click", saveStudent);
+
+    document.querySelectorAll("[data-bus]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.currentBus = btn.dataset.bus;
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-view]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.currentView = btn.dataset.view;
+        render();
+      });
+    });
+
+    document.querySelectorAll("[data-day]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.currentDay = btn.dataset.day;
+        render();
+      });
+    });
+
+    onSnapshot(collection(db, "students"), (snapshot) => {
+      state.students = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      }));
+      render();
+    });
+  </script>
+</body>
+</html>
