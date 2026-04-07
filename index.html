@@ -50,10 +50,12 @@
         /* 기사님 모드에서 관리자 도구 숨김 */
         body.driver-mode .admin-ui { display: none !important; }
 
-        /* 시간 입력창 최적화: 모바일에서 잘림 방지 */
+        /* 시간 입력창 최적화: 모바일에서 잘림 방지 및 폰트 조정 */
         input[type="time"] {
-            min-width: 130px; /* 최소 너비 확보 */
-            font-size: 14px !important; /* 글자 크기를 살짝 줄여서 한 줄에 표시 */
+            min-width: 140px; 
+            font-size: 16px !important;
+            padding: 8px !important;
+            background-color: white !important;
         }
     </style>
 </head>
@@ -73,9 +75,9 @@
         </div>
 
         <div id="admin-bus-selector" class="admin-ui grid grid-cols-3 gap-2 mb-5">
-            <button onclick="changeBus('1')" id="bus-1" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">1호차</button>
-            <button onclick="changeBus('2')" id="bus-2" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">2호차</button>
-            <button onclick="changeBus('3')" id="bus-3" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">3호차</button>
+            <button onclick="changeBus('1')" id="bus-btn-1" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">1호차</button>
+            <button onclick="changeBus('2')" id="bus-btn-2" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">2호차</button>
+            <button onclick="changeBus('3')" id="bus-btn-3" class="bus-tab py-2.5 rounded-xl bg-slate-800 text-xs font-bold transition-all">3호차</button>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -116,9 +118,9 @@
         <button onclick="copyLink('3')" id="cp-3" class="flex-1 bg-slate-900 text-white py-5 rounded-3xl font-black text-[10px] active:scale-95 transition-all">3호차 복사</button>
     </footer>
 
-    <!-- 6. 모달: 학생 추가/수정 (수정됨) -->
+    <!-- 6. 모달: 학생 추가/수정 -->
     <div id="modal" class="modal">
-        <div class="bg-white w-full max-w-md rounded-[3.5rem] overflow-hidden flex flex-col shadow-2xl max-h-[90vh]">
+        <div class="bg-white w-full max-w-md rounded-[4rem] overflow-hidden flex flex-col shadow-2xl max-h-[90vh]">
             <div class="p-8 bg-slate-900 text-white flex justify-between items-center sticky top-0 z-10 text-left">
                 <span id="modal-title" class="text-xl font-black uppercase italic tracking-widest text-left">ADD STUDENT</span>
                 <button onclick="closeModal()" class="text-4xl p-2">&times;</button>
@@ -132,18 +134,17 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Bus</label>
-                        <select id="f-bus" class="w-full p-4 bg-slate-100 rounded-2xl font-bold border-none appearance-none">
+                        <select id="f-bus" class="w-full p-4 bg-slate-100 rounded-2xl font-bold border-none appearance-none shadow-md">
                             <option value="1">1호차</option><option value="2">2호차</option><option value="3">3호차</option>
                         </select>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Day</label>
-                        <select id="f-day" class="w-full p-4 bg-slate-100 rounded-2xl font-bold border-none appearance-none">
+                        <select id="f-day" class="w-full p-4 bg-slate-100 rounded-2xl font-bold border-none appearance-none shadow-md">
                             <option value="월">월요일</option><option value="화">화요일</option><option value="수">수요일</option><option value="목">목요일</option><option value="금">금요일</option>
                         </select>
                     </div>
                 </div>
-                <!-- 시간 입력란 개선: 너비 확대 및 폰트 조정 -->
                 <div class="p-6 bg-blue-50 rounded-[2.5rem] space-y-2 border border-blue-100 shadow-inner">
                     <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest italic">🏠 Pickup (등원)</span>
                     <div class="flex gap-2 items-center">
@@ -176,41 +177,54 @@
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- Firebase 설정 ---
-    let firebaseConfig;
+    // --- Firebase 배포 방어 로직 ---
+    let firebaseConfig = { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
     try {
-        firebaseConfig = JSON.parse(__firebase_config);
-    } catch(e) {
-        firebaseConfig = { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
-    }
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+        }
+    } catch(e) {}
     
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'bus-management-naon-production';
+    // 설정값이 비어있으면 Firebase 초기화를 건너뛰어 에러 방지
+    let db = null;
+    let auth = null;
+    let appId = 'bus-master-production-v10';
+    
+    if (firebaseConfig.apiKey) {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+    }
 
     // 전역 상태
-    let students = [];
-    let state = { bus: "1", day: "월", view: "pickup", isDriver: false, user: null };
+    window.state = {
+        students: [],
+        bus: "1",
+        day: "월",
+        view: "pickup",
+        isDriver: false,
+        user: null,
+        setBus(b) { this.bus = b; renderUI(); },
+        setDay(d) { this.day = d; renderUI(); },
+        setView(v) { this.view = v; renderUI(); }
+    };
 
     // 사진 데이터 내장
-    const INITIAL_SNAPSHOT = [
-        {"id":"w1","name":"이하니","bus":"1","day":"월","pTime":"13:58","pLoc":"수자인센트럴","dTime":"15:56","dLoc":"아테라","contacts":[]},
-        {"id":"w2","name":"이준일","bus":"1","day":"월","pTime":"13:58","pLoc":"수자인센트럴","dTime":"15:57","dLoc":"수자인센트럴","contacts":[]},
-        {"id":"w3","name":"안다온","bus":"1","day":"월","pTime":"14:03","pLoc":"수자인더퍼스트","dTime":"16:02","dLoc":"수자인더퍼스트","contacts":[]},
-        {"id":"w10","name":"정현우","bus":"1","day":"월","pTime":"15:07","pLoc":"자래이","dTime":"16:45","dLoc":"자래이","contacts":[]},
-        {"id":"f1","name":"정세윤","bus":"2","day":"금","pTime":"14:02","pLoc":"17단지","dTime":"15:44","dLoc":"17단지","contacts":[{"cat":"보호자","tel":"010-3350-2166"}]}
-    ];
+    const INITIAL_SNAPSHOT = [{"id":"w1","name":"이하니","bus":"1","day":"월","pTime":"13:58","pLoc":"수자인센트럴","dTime":"15:56","dLoc":"아테라","contacts":[]},{"id":"f1","name":"정세윤","bus":"2","day":"금","pTime":"14:02","pLoc":"17단지","dTime":"15:44","dLoc":"17단지","contacts":[{"cat":"보호자","tel":"010-3350-2166"}]}];
 
     async function start() {
         const params = new URLSearchParams(location.search);
         if (params.get('bus')) state.bus = params.get('bus');
         if (params.get('mode') === 'driver') state.isDriver = true;
-        
         const today = ['일','월','화','수','목','금','토'][new Date().getDay()];
         if(['월','화','수','목','금'].includes(today)) state.day = today;
-
         if (state.isDriver) document.body.classList.add('driver-mode');
+
+        // 초기 렌더링 (DB 연결 전이라도 버튼은 작동하게 함)
+        renderUI();
+
+        if (!db) return; // Firebase 설정 없으면 여기서 중단 (UI는 계속 작동)
 
         try {
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -218,104 +232,72 @@
             } else {
                 await signInAnonymously(auth);
             }
-
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     state.user = user;
                     const col = collection(db, 'artifacts', appId, 'public', 'data', 'students');
                     onSnapshot(col, (snapshot) => {
-                        students = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        state.students = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                         const seedBtn = document.getElementById('seed-btn');
-                        if (seedBtn) seedBtn.style.display = (students.length === 0 && !state.isDriver) ? 'block' : 'none';
+                        if (seedBtn) seedBtn.style.display = (state.students.length === 0 && !state.isDriver) ? 'block' : 'none';
                         renderUI();
-                    }, (err) => {
-                        console.error("Firestore Permission denied:", err);
                     });
                 }
             });
-        } catch (e) { console.error("Init Error:", e); }
+        } catch (e) { console.error("Firebase Sync Error", e); }
     }
 
     window.renderUI = function() {
         const listEl = document.getElementById('main-list');
         if (!listEl) return;
         listEl.innerHTML = '';
-
-        const filtered = students.filter(s => s.bus === state.bus && s.day === state.day)
+        const filtered = state.students.filter(s => s.bus === state.bus && s.day === state.day)
             .sort((a, b) => (state.view === 'pickup' ? a.pTime : a.dTime || "99:99").localeCompare(state.view === 'pickup' ? b.pTime : b.dTime || "99:99"));
 
         filtered.forEach(s => {
             const time = state.view === 'pickup' ? s.pTime : s.dTime;
             const loc = state.view === 'pickup' ? s.pLoc : s.dLoc;
-            const textClass = state.view === 'pickup' ? 'text-blue-600' : 'text-red-600';
-            const cardAccent = state.view === 'pickup' ? 'pickup-card' : 'dropoff-card';
-
+            const colorClass = state.view === 'pickup' ? 'text-blue-600' : 'text-red-600';
+            const accentClass = state.view === 'pickup' ? 'pickup-card' : 'dropoff-card';
             const card = document.createElement('div');
-            card.className = `bg-white rounded-[3.5rem] shadow-xl ${cardAccent} p-10 mb-8 animate-in fade-in slide-in-from-bottom-5 text-left`;
-            
+            card.className = `bg-white rounded-[3.5rem] shadow-xl ${accentClass} p-10 mb-8 text-left animate-in fade-in slide-in-from-bottom-5`;
             let contactsHTML = '';
             (s.contacts || []).forEach(c => {
-                contactsHTML += `
-                    <div class="flex items-center justify-between bg-slate-50 p-5 rounded-[2.5rem] border border-slate-100 mt-4">
-                        <span class="text-[11px] font-black text-slate-400 uppercase w-16 text-center tracking-tighter">${c.cat}</span>
-                        <div class="flex gap-3">
-                            <a href="tel:${c.tel}" class="bg-blue-600 text-white px-8 py-4 rounded-2xl text-[12px] font-black shadow-lg">📞 전화</a>
-                            <a href="sms:${c.tel}" class="bg-emerald-500 text-white px-8 py-4 rounded-2xl text-[12px] font-black shadow-lg">✉️ 문자</a>
-                        </div>
-                    </div>`;
+                contactsHTML += `<div class="flex items-center justify-between bg-slate-50 p-5 rounded-[2.5rem] border border-slate-100 mt-4"><span class="text-[11px] font-black text-slate-400 uppercase w-16 text-center tracking-tighter">${c.cat}</span><div class="flex gap-3"><a href="tel:${c.tel}" class="bg-blue-600 text-white px-8 py-4 rounded-2xl text-[12px] font-black shadow-lg">📞 전화</a><a href="sms:${c.tel}" class="bg-emerald-500 text-white px-8 py-4 rounded-2xl text-[12px] font-black shadow-lg">✉️ 문자</a></div></div>`;
             });
-
-            card.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div class="text-left">
-                        <h2 class="text-6xl font-black text-slate-900 tracking-tighter">${s.name}</h2>
-                        <p class="text-xs font-black uppercase tracking-[0.3em] mt-2 ${textClass}">${state.view === 'pickup' ? '🏠 승차단계' : '🏫 하차단계'}</p>
-                    </div>
-                    ${!state.isDriver ? `
-                        <div class="flex gap-2 opacity-30">
-                            <button onclick="ui.openEditModal('${s.id}')" class="p-2 text-4xl">📝</button>
-                            <button onclick="dbActions.deleteStudent('${s.id}')" class="p-2 text-4xl">🗑️</button>
-                        </div>` : ''}
-                </div>
-                <div class="flex items-center gap-6 bg-slate-50 p-8 rounded-[3.5rem] mb-6 shadow-inner border border-slate-100">
-                    <span class="text-7xl font-black font-mono tracking-tighter ${textClass}">${time || '--:--'}</span>
-                    <span class="text-4xl font-black text-slate-700 flex-1 break-keep leading-tight text-left">${loc || '장소 미입력'}</span>
-                </div>
-                <div class="space-y-2">${contactsHTML || '<p class="text-center text-slate-200 py-4 italic text-xs uppercase tracking-widest">No Contacts Found</p>'}</div>
-            `;
+            card.innerHTML = `<div class="flex justify-between items-start mb-6"><div><h2 class="text-6xl font-black text-slate-900 tracking-tighter">${s.name}</h2><p class="text-xs font-black uppercase tracking-[0.3em] mt-2 ${colorClass}">${state.view === 'pickup' ? '🏠 승차단계' : '🏫 하차단계'}</p></div>${!state.isDriver ? `<div class="flex gap-2 opacity-30"><button onclick="ui.openEditModal('${s.id}')" class="p-2 text-4xl">📝</button><button onclick="dbActions.deleteStudent('${s.id}')" class="p-2 text-4xl">🗑️</button></div>` : ''}</div><div class="flex items-center gap-6 bg-slate-50 p-8 rounded-[3.5rem] mb-6 shadow-inner border border-slate-100"><span class="text-7xl font-black font-mono tracking-tighter ${colorClass}">${time || '--:--'}</span><span class="text-4xl font-black text-slate-700 flex-1 break-keep leading-tight text-left">${loc || '장소 미입력'}</span></div><div class="space-y-2">${contactsHTML || '<p class="text-center text-slate-200 py-4 italic text-xs">No Contacts</p>'}</div>`;
             listEl.appendChild(card);
         });
 
         if (filtered.length === 0) listEl.innerHTML = `<div class="py-40 text-center opacity-10 text-2xl font-black italic uppercase tracking-widest">No Schedule Today</div>`;
-
-        const infoBus = document.getElementById('info-bus'); if (infoBus) infoBus.innerText = state.bus + "호차";
-        const infoDay = document.getElementById('info-day'); if (infoDay) infoDay.innerText = state.day + "요일 운행표";
-        const infoCount = document.getElementById('info-count'); if (infoCount) infoCount.innerText = filtered.length + " 명";
         
+        const iB = document.getElementById('info-bus'); if (iB) iB.innerText = state.bus + "호차";
+        const iD = document.getElementById('info-day'); if (iD) iD.innerText = state.day + "요일 운행표";
+        const iC = document.getElementById('info-count'); if (iC) iC.innerText = filtered.length + " 명";
         document.querySelectorAll('button').forEach(b => {
             if (b.innerText === state.day) b.classList.add('active-tab');
             else if (b.innerText.includes(state.bus) && b.classList.contains('bus-tab')) b.classList.add('active-tab');
             else b.classList.remove('active-tab');
         });
-
-        const tabPickup = document.getElementById('btn-pickup'); if (tabPickup) tabPickup.classList.toggle('active-tab', state.view === 'pickup');
-        const tabDropoff = document.getElementById('btn-dropoff'); if (tabDropoff) tabDropoff.classList.toggle('active-tab', state.view === 'dropoff');
+        const tP = document.getElementById('btn-pickup'); if (tP) tP.classList.toggle('active-tab', state.view === 'pickup');
+        const tD = document.getElementById('btn-dropoff'); if (tD) tD.classList.toggle('active-tab', state.view === 'dropoff');
     };
 
     window.ui = {
-        openAddModal() { const form = document.getElementById('student-form'); if (form) form.reset(); const idInput = document.getElementById('f-id'); if (idInput) idInput.value = ''; const modal = document.getElementById('modal'); if (modal) modal.style.display = 'flex'; },
+        openAddModal() { const f = document.getElementById('student-form'); if (f) f.reset(); const i = document.getElementById('f-id'); if (i) i.value = ''; const m = document.getElementById('modal'); if (m) m.style.display = 'flex'; },
         openEditModal(id) {
-            const s = students.find(item => item.id === id); if (!s) return;
+            const s = state.students.find(item => item.id === id); if (!s) return;
             const fields = { 'f-id': s.id, 'f-name': s.name, 'f-bus': s.bus, 'f-day': s.day, 'f-pTime': s.pTime, 'f-pLoc': s.pLoc, 'f-dTime': s.dTime, 'f-dLoc': s.dLoc };
-            Object.keys(fields).forEach(key => { const el = document.getElementById(key); if (el) el.value = fields[key]; });
-            ["보호자", "학생"].forEach(cat => { const c = (s.contacts || []).find(ci => ci.cat === cat); const telEl = document.getElementById(`tel-${cat}`); if (telEl) telEl.value = c ? c.tel : ''; });
-            const modal = document.getElementById('modal'); if (modal) modal.style.display = 'flex';
+            Object.keys(fields).forEach(k => { const e = document.getElementById(k); if (e) e.value = fields[k]; });
+            ["보호자", "학생"].forEach(cat => { const c = (s.contacts || []).find(ci => ci.cat === cat); const t = document.getElementById(`tel-${cat}`); if (t) t.value = c ? c.tel : ''; });
+            const m = document.getElementById('modal'); if (m) m.style.display = 'flex';
         },
-        closeModal() { const modal = document.getElementById('modal'); if (modal) modal.style.display = 'none'; },
+        closeModal() { const m = document.getElementById('modal'); if (m) m.style.display = 'none'; },
         copyLink(busNum) {
-            const GITHUB_URL = "https://naoncompany.github.io/bus-master/";
-            const link = `${GITHUB_URL}?bus=${busNum}&mode=driver`;
-            const t = document.createElement("textarea"); document.body.appendChild(t); t.value = link; t.select(); t.setSelectionRange(0, 99999); document.execCommand('copy'); document.body.removeChild(t);
+            const G_URL = "https://naoncompany.github.io/bus-master/";
+            const link = `${G_URL}?bus=${busNum}&mode=driver`;
+            const t = document.createElement("textarea"); document.body.appendChild(t); t.value = link; t.select(); t.setSelectionRange(0, 99999);
+            document.execCommand('copy'); document.body.removeChild(t);
             const btn = document.getElementById(`cp-${busNum}`);
             if (btn) { const old = btn.innerText; btn.innerText = "COPIED! ✅"; btn.style.backgroundColor="#10b981"; setTimeout(() => { btn.innerText = old; btn.style.backgroundColor="#0f172a"; }, 2000); }
             alert(busNum + "호차 진짜 링크가 복사되었습니다!");
@@ -324,24 +306,24 @@
 
     window.dbActions = {
         async save() {
-            const nameEl = document.getElementById('f-name'); if (!nameEl || !nameEl.value) return;
+            if (!db) { alert("Firebase 설정이 없습니다."); return; }
+            const n = document.getElementById('f-name'); if (!n || !n.value) return;
             const id = document.getElementById('f-id').value || "id-" + Date.now();
-            const contacts = []; ["보호자", "학생"].forEach(cat => { const telEl = document.getElementById(`tel-${cat}`); if (telEl && telEl.value) contacts.push({ cat, tel: telEl.value }); });
-            const data = { id, name: nameEl.value, contacts, bus: document.getElementById('f-bus').value, day: document.getElementById('f-day').value, pTime: document.getElementById('f-pTime').value, pLoc: document.getElementById('f-pLoc').value, dTime: document.getElementById('f-dTime').value, dLoc: document.getElementById('f-dLoc').value };
+            const contacts = []; ["보호자", "학생"].forEach(cat => { const t = document.getElementById(`tel-${cat}`); if (t && t.value) contacts.push({ cat, tel: t.value }); });
+            const data = { id, name: n.value, contacts, bus: document.getElementById('f-bus').value, day: document.getElementById('f-day').value, pTime: document.getElementById('f-pTime').value, pLoc: document.getElementById('f-pLoc').value, dTime: document.getElementById('f-dTime').value, dLoc: document.getElementById('f-dLoc').value };
             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', id), data);
             ui.closeModal();
         },
         async deleteStudent(id) { if (confirm("삭제할까요?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', id)); },
-        async seed() { const batch = writeBatch(db); INITIAL_SNAPSHOT.forEach(s => batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'students', s.id), s)); await batch.commit(); alert("전체 데이터 이식 완료!"); }
+        async seed() { const batch = writeBatch(db); INITIAL_SNAPSHOT.forEach(s => batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'students', s.id), s)); await batch.commit(); alert("이식 완료!"); }
     };
 
-    window.changeBus = (b) => { state.bus = b; renderUI(); };
-    window.changeDay = (d) => { state.day = d; renderUI(); };
-    window.changeView = (v) => { state.view = v; renderUI(); };
+    window.changeBus = (b) => state.setBus(b);
+    window.changeDay = (d) => state.setDay(d);
+    window.changeView = (v) => state.setView(v);
     window.closeModal = ui.closeModal;
     window.copyLink = ui.copyLink;
     window.saveToCloud = window.dbActions.save;
-
     start();
 </script>
 </body>
